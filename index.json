@@ -444,22 +444,12 @@
       "md5": ""
     },
     {
-      "name": "Tiger Translations",
-      "fileName": "TigerTranslations",
-      "imageURL": "https://github.com/noaione/shosetsu-extensions/raw/dev/icons/TigerTranslations.png",
-      "id": 954056,
-      "lang": "en",
-      "ver": "0.1.2",
-      "libVer": "1.0.0",
-      "md5": ""
-    },
-    {
-      "name": "Story Seedling",
-      "fileName": "StorySeedling",
+      "name": "Dragon TL",
+      "fileName": "dragonTl",
       "imageURL": "https://github.com/shosetsuorg/extensions/raw/dev/icons/TravisTranslations.png",
-      "id": 4302,
+      "id": 12321,
       "lang": "en",
-      "ver": "2.1.8",
+      "ver": "0.1.0",
       "libVer": "1.0.0",
       "md5": "",
       "disableTest": true
