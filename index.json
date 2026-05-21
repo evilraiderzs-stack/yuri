@@ -434,9 +434,29 @@
       "disableTest": true
     },
     {
+      "name": "ISO Translations",
+      "fileName": "ISOTranslations",
+      "imageURL": "https://github.com/noaione/shosetsu-extensions/raw/dev/icons/ISOTranslations.png",
+      "id": 954055,
+      "lang": "en",
+      "ver": "0.1.2",
+      "libVer": "1.0.0",
+      "md5": ""
+    },
+    {
+      "name": "Yuri WordPress",
+      "fileName": "YuriPress",
+      "imageURL": "https://github.com/noaione/shosetsu-extensions/raw/dev/icons/KuroKurori.png",
+      "id": 12320,
+      "lang": "en",
+      "ver": "0.1.0",
+      "libVer": "1.0.0",
+      "md5": ""
+    },
+    {
       "name": "Dragon TL",
-      "fileName": "dragonTl",
-      "imageURL": "https://github.com/shosetsuorg/extensions/raw/dev/icons/TravisTranslations.png",
+      "fileName": "DragonTL",
+      "imageURL": "https://github.com/shosetsuorg/extensions/raw/dev/icons/Tintan.png",
       "id": 12321,
       "lang": "en",
       "ver": "0.1.0",
