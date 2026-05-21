@@ -1,4 +1,4 @@
--- {"id":12320,"ver":"0.1.0","libVer":"1.0.0","author":"N4O","dep":["WPCommon>=1.0.0"]}
+-- {"id":12320,"ver":"0.2.0","libVer":"1.0.0","author":"N4O","dep":["WPCommon>=1.0.0"]}
 
 local baseURL = "https://yuritranslations.wordpress.com"
 
