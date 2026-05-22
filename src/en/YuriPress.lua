@@ -19,14 +19,27 @@ end
 local function parsePage(url)
     local doc = GETDocument(expandURL(url))
     local content = doc:selectFirst("article")
-
-    if not content then return nil end
-
     local p = content:selectFirst(".entry-content")
-    if not p then return nil end
 
     WPCommon.cleanupElement(p)
     WPCommon.cleanupPassages(p:children())
+
+    ----------------------------------------------------
+    -- REMOVE FOOTNOTE LINKS (ref1, ref2, etc.)
+    ----------------------------------------------------
+    map(p:select("a[href^='#fn'], a[id^='ref']"), function (a)
+        a:remove()
+    end)
+
+    ----------------------------------------------------
+    -- REMOVE ↩ SYMBOLS
+    ----------------------------------------------------
+    map(p:select("*"), function (el)
+        local text = el:text()
+        if text and text:find("↩", 1, true) then
+            el:setText(text:gsub("↩", ""))
+        end
+    end)
 
     return p
 end
