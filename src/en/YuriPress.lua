@@ -31,16 +31,6 @@ local function parsePage(url)
         a:remove()
     end)
 
-    ----------------------------------------------------
-    -- REMOVE ↩ SYMBOLS
-    ----------------------------------------------------
-    map(p:select("*"), function (el)
-        local text = el:text()
-        if text and text:find("↩", 1, true) then
-            el:setText(text:gsub("↩", ""))
-        end
-    end)
-
     return p
 end
 
