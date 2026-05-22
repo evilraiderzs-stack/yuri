@@ -1,4 +1,4 @@
--- {"id":12321,"ver":"0.2.0","libVer":"1.0.0","author":"N4O"}
+-- {"id":12321,"ver":"0.3.0","libVer":"1.0.0","author":"N4O"}
 
 local baseURL = "https://dragontl.net"
 local WPCommon = Require("WPCommon")
