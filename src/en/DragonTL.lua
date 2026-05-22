@@ -1,21 +1,8 @@
--- {"id":12321,"ver":"0.1.0","libVer":"1.0.0","author":"N4O"}
+-- {"id":12321,"ver":"0.2.0","libVer":"1.0.0","author":"N4O"}
 
 local baseURL = "https://dragontl.net"
 local WPCommon = Require("WPCommon")
 
---- Remove footnote links like:
---- <a id="ref8" href="#fn8">8</a>
-local function removeFootnotes(elem)
-    -- remove anchor footnote refs
-    for _, a in ipairs(elem:select("a[id^=ref]"):toArray()) do
-        a:remove()
-    end
-
-    -- remove backlink symbols like ↩ if left behind
-    local html = elem:html()
-    html = html:gsub("%s*↩%s*", "")
-    elem:html(html)
-end
 
 local function expandURL(url)
     if url:match("^https?://") then return url end
