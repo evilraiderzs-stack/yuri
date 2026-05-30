@@ -470,10 +470,21 @@
       "imageURL": "https://github.com/shosetsuorg/extensions/raw/dev/icons/Tintan.png",
       "id": 14444,
       "lang": "en",
-      "ver": "0.3.0",
+      "ver": "0.4.0",
       "libVer": "1.0.0",
       "md5": "",
       "disableTest": true
-    }
+    },
+    {
+    "name": "Wuxia Box",
+    "fileName": "WuxiaBox",
+    "imageURL": "https://github.com/shosetsuorg/extensions/raw/dev/icons/Tintan.png",
+    "id": 14445,
+    "lang": "en",
+    "ver": "0.1.0",
+    "libVer": "1.0.0",
+    "md5": "",
+    "disableTest": true
+  }
   ]
 }
