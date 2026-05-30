@@ -459,7 +459,18 @@
       "imageURL": "https://github.com/shosetsuorg/extensions/raw/dev/icons/Tintan.png",
       "id": 12321,
       "lang": "en",
-      "ver": "0.3.0",
+      "ver": "0.4.0",
+      "libVer": "1.0.0",
+      "md5": "",
+      "disableTest": true
+    },
+    {
+      "name": "Baihe Tales",
+      "fileName": "BaiheTale",
+      "imageURL": "https://github.com/shosetsuorg/extensions/raw/dev/icons/Tintan.png",
+      "id": 12322,
+      "lang": "en",
+      "ver": "0.1.0",
       "libVer": "1.0.0",
       "md5": "",
       "disableTest": true
