@@ -1,7 +1,6 @@
--- {"id":14444,"ver":"0.3.0","libVer":"1.0.0","author":"YourName","dep":["WPCommon>=1.0.0"]}
+-- {"id":14444,"ver":"0.4.0","libVer":"1.0.0","author":"YourName","dep":["WPCommon>=1.0.0"]}
 
 local baseURL = "https://baihetales.wordpress.com"
-
 local WPCommon = Require("WPCommon")
 
 ----------------------------------------------------
@@ -24,65 +23,51 @@ end
 ----------------------------------------------------
 
 local function cleanImg(url)
-    if not url then
-        return nil
-    end
-
+    if not url then return nil end
     return url:gsub("%?.+$", "")
 end
 
+----------------------------------------------------
+-- PAGE PARSER (CHAPTER CONTENT)
+----------------------------------------------------
 
-------------------------------------------------
--- CHAPTERS
-------------------------------------------------
+local function parsePage(url)
+    local doc = GETDocument(expandURL(url))
 
-if loadChapters then
+    local content =
+        doc:selectFirst(".entry-content")
+        or doc:selectFirst(".wp-block-post-content")
 
-    local chapters = {}
-    local order = 1
-    local pageNum = 1
-
-    while true do
-
-        local pageURL
-
-        if pageNum == 1 then
-            pageURL = expandURL(novelURL)
-        else
-            pageURL =
-                expandURL(novelURL)
-                .. "?query-4-page="
-                .. pageNum
-                .. "&cst"
-        end
-
-        local pageDoc = GETDocument(pageURL)
-
-        local links =
-            pageDoc:select(
-                "ul.wp-block-post-template h6.wp-block-post-title a"
-            )
-
-        if links:size() == 0 then
-            break
-        end
-
-        map(links, function(v)
-
-            chapters[#chapters + 1] = NovelChapter {
-                title = v:text(),
-                link = shrinkURL(v:attr("href")),
-                order = order
-            }
-
-            order = order + 1
-
-        end)
-
-        pageNum = pageNum + 1
+    if not content then
+        return nil
     end
 
-    info:setChapters(AsList(chapters))
+    -- cut footer / ads / navigation
+    local sep = content:selectFirst("hr.wp-block-separator")
+
+    if sep then
+        local node = sep
+        while node do
+            local nextNode = node:nextElementSibling()
+            node:remove()
+            node = nextNode
+        end
+    end
+
+    content:select("script"):remove()
+    content:select("iframe"):remove()
+    content:select("style"):remove()
+
+    WPCommon.cleanupElement(content)
+    WPCommon.cleanupPassages(content:children())
+
+    return content
+end
+
+local function getPassage(url)
+    local page = parsePage(url)
+    if not page then return "" end
+    return pageOfElem(page)
 end
 
 ----------------------------------------------------
@@ -95,27 +80,17 @@ local function getNovelList(doc)
     local posts = doc:select("li.wp-block-post")
 
     map(posts, function(v)
-
-        local titleNode =
-            v:selectFirst("h3.wp-block-post-title a")
-
-        if not titleNode then
-            return
-        end
+        local titleNode = v:selectFirst("h3.wp-block-post-title a")
+        if not titleNode then return end
 
         novels[#novels + 1] = Novel {
             title = titleNode:text(),
             link = shrinkURL(titleNode:attr("href"))
         }
-
     end)
 
     return novels
 end
-
-----------------------------------------------------
--- LISTINGS
-----------------------------------------------------
 
 local function listings()
     local doc = GETDocument(baseURL)
@@ -123,7 +98,7 @@ local function listings()
 end
 
 ----------------------------------------------------
--- NOVEL INFO + CHAPTERS
+-- NOVEL + CHAPTERS (FIXED PAGINATION)
 ----------------------------------------------------
 
 local function parseNovel(novelURL, loadChapters)
@@ -155,33 +130,45 @@ local function parseNovel(novelURL, loadChapters)
         or doc:selectFirst(".entry-content img")
 
     if img then
-        info:setImageURL(
-            cleanImg(img:attr("src"))
-        )
+        info:setImageURL(cleanImg(img:attr("src")))
     end
 
     ------------------------------------------------
-    -- CHAPTERS
+    -- CHAPTERS (PAGINATION FIX)
     ------------------------------------------------
 
     if loadChapters then
 
         local chapters = {}
+        local order = 1
+        local nextURL = expandURL(novelURL)
 
-        local links =
-            doc:select(
+        while nextURL do
+
+            local pageDoc = GETDocument(nextURL)
+
+            local links = pageDoc:select(
                 "ul.wp-block-post-template h6.wp-block-post-title a"
             )
 
-        map(links, function(v)
+            map(links, function(v)
+                chapters[#chapters + 1] = NovelChapter {
+                    title = v:text(),
+                    link = shrinkURL(v:attr("href")),
+                    order = order
+                }
+                order = order + 1
+            end)
 
-            chapters[#chapters + 1] = NovelChapter {
-                title = v:text(),
-                link = shrinkURL(v:attr("href")),
-                order = #chapters + 1
-            }
+            -- find "Next Page"
+            local nextBtn = pageDoc:selectFirst("a.wp-block-query-pagination-next")
 
-        end)
+            if nextBtn then
+                nextURL = expandURL(nextBtn:attr("href"))
+            else
+                nextURL = nil
+            end
+        end
 
         info:setChapters(AsList(chapters))
     end
