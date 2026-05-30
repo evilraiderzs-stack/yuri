@@ -1,4 +1,4 @@
--- {"id":12322,"ver":"0.2.0","libVer":"1.0.0","author":"YourName","dep":["WPCommon>=1.0.0"]}
+-- {"id":14444,"ver":"0.2.0","libVer":"1.0.0","author":"YourName","dep":["WPCommon>=1.0.0"]}
 
 local baseURL = "https://baihetales.wordpress.com"
 
@@ -9,11 +9,26 @@ local WPCommon = Require("WPCommon")
 ----------------------------------------------------
 
 local function shrinkURL(url)
-    return url:gsub("^.-baihetales%.wordpress%.com", "")
+    return url:gsub("^https?://baihetales%.wordpress%.com", "")
 end
 
 local function expandURL(url)
+    if url:find("^https?://") then
+        return url
+    end
     return baseURL .. url
+end
+
+----------------------------------------------------
+-- IMAGE CLEANUP
+----------------------------------------------------
+
+local function cleanImg(url)
+    if not url then
+        return nil
+    end
+
+    return url:gsub("%?.+$", "")
 end
 
 ----------------------------------------------------
@@ -23,55 +38,38 @@ end
 local function parsePage(url)
     local doc = GETDocument(expandURL(url))
 
-    local content = doc:selectFirst(".entry-content")
+    local content =
+        doc:selectFirst(".entry-content")
+        or doc:selectFirst(".wp-block-post-content")
+
     if not content then
         return nil
     end
 
     ------------------------------------------------
-    -- Remove everything after first HR
-    -- (Patreon, navigation, socials, etc.)
+    -- Remove everything after the first separator
+    -- (patreon, navigation, share buttons, etc.)
     ------------------------------------------------
 
-    local hr = content:selectFirst("hr")
+    local sep = content:selectFirst("hr.wp-block-separator")
 
-    if hr then
-        local elem = hr
+    if sep then
+        local node = sep
 
-        while elem do
-            local nextElem = elem:nextElementSibling()
-            elem:remove()
-            elem = nextElem
+        while node do
+            local nextNode = node:nextElementSibling()
+            node:remove()
+            node = nextNode
         end
     end
 
     ------------------------------------------------
-    -- Remove scripts
+    -- Remove unwanted elements
     ------------------------------------------------
 
-    map(content:select("script"), function(e)
-        e:remove()
-    end)
-
-    ------------------------------------------------
-    -- Remove iframes
-    ------------------------------------------------
-
-    map(content:select("iframe"), function(e)
-        e:remove()
-    end)
-
-    ------------------------------------------------
-    -- Remove ads
-    ------------------------------------------------
-
-    map(content:select("[id^=atatags]"), function(e)
-        e:remove()
-    end)
-
-    map(content:select("#jp-post-flair"), function(e)
-        e:remove()
-    end)
+    content:select("script"):remove()
+    content:select("iframe"):remove()
+    content:select("style"):remove()
 
     WPCommon.cleanupElement(content)
     WPCommon.cleanupPassages(content:children())
@@ -79,50 +77,89 @@ local function parsePage(url)
     return content
 end
 
+local function getPassage(url)
+    local page = parsePage(url)
+
+    if not page then
+        return ""
+    end
+
+    return pageOfElem(page)
+end
+
 ----------------------------------------------------
--- LISTINGS
+-- NOVEL LIST
 ----------------------------------------------------
 
-local function findListings(doc)
+local function getNovelList(doc)
     local novels = {}
 
-    map(doc:select("li.wp-block-post"), function(post)
-        local titleElem = post:selectFirst("h3.wp-block-post-title a")
+    local posts = doc:select("li.wp-block-post")
 
-        if not titleElem then
+    map(posts, function(v)
+
+        local titleNode =
+            v:selectFirst("h3.wp-block-post-title a")
+
+        if not titleNode then
             return
         end
 
         novels[#novels + 1] = Novel {
-            title = titleElem:text(),
-            link = shrinkURL(titleElem:attr("href"))
+            title = titleNode:text(),
+            link = shrinkURL(titleNode:attr("href"))
         }
+
     end)
 
     return novels
 end
 
 ----------------------------------------------------
--- NOVEL PARSER
+-- LISTINGS
 ----------------------------------------------------
 
-local function parseNovelPage(novelURL, loadChapters)
+local function listings()
+    local doc = GETDocument(baseURL)
+    return getNovelList(doc)
+end
+
+----------------------------------------------------
+-- NOVEL INFO + CHAPTERS
+----------------------------------------------------
+
+local function parseNovel(novelURL, loadChapters)
     local doc = GETDocument(expandURL(novelURL))
 
-    local article = doc:selectFirst("article")
-
-    local info = NovelInfo {
-        title = article:selectFirst(".entry-title"):text()
-    }
+    local info = NovelInfo {}
 
     ------------------------------------------------
-    -- COVER
+    -- TITLE
     ------------------------------------------------
 
-    local img = article:selectFirst(".entry-content img")
+    local titleNode =
+        doc:selectFirst("h1.entry-title")
+        or doc:selectFirst("h1")
+
+    if titleNode then
+        info:setTitle(titleNode:text())
+    else
+        info:setTitle("Unknown Title")
+    end
+
+    ------------------------------------------------
+    -- COVER IMAGE
+    ------------------------------------------------
+
+    local img =
+        doc:selectFirst(".wp-block-post-featured-image img")
+        or doc:selectFirst("img.wp-post-image")
+        or doc:selectFirst(".entry-content img")
 
     if img then
-        info:setImageURL(img:attr("src"))
+        info:setImageURL(
+            cleanImg(img:attr("src"))
+        )
     end
 
     ------------------------------------------------
@@ -130,44 +167,23 @@ local function parseNovelPage(novelURL, loadChapters)
     ------------------------------------------------
 
     if loadChapters then
+
         local chapters = {}
 
-        local page = 1
-
-        while true do
-            local pageURL = novelURL
-
-            if page > 1 then
-                pageURL = novelURL .. "?query-4-page=" .. page
-            end
-
-            local pageDoc = GETDocument(expandURL(pageURL))
-
-            local links = pageDoc:select(
-                "li.wp-block-post h6.wp-block-post-title a"
+        local links =
+            doc:select(
+                "ul.wp-block-post-template h6.wp-block-post-title a"
             )
 
-            if links:isEmpty() then
-                break
-            end
+        map(links, function(v)
 
-            map(links, function(a)
-                local href = a:attr("href")
+            chapters[#chapters + 1] = NovelChapter {
+                title = v:text(),
+                link = shrinkURL(v:attr("href")),
+                order = #chapters + 1
+            }
 
-                if WPCommon.contains(
-                    href,
-                    "baihetales.wordpress.com"
-                ) then
-                    chapters[#chapters + 1] = NovelChapter {
-                        order = #chapters + 1,
-                        title = a:text(),
-                        link = shrinkURL(href)
-                    }
-                end
-            end)
-
-            page = page + 1
-        end
+        end)
 
         info:setChapters(AsList(chapters))
     end
@@ -176,32 +192,26 @@ local function parseNovelPage(novelURL, loadChapters)
 end
 
 ----------------------------------------------------
--- RETURN EXTENSION
+-- EXPORT
 ----------------------------------------------------
 
 return {
-    id = 12322,
+    id = 14444,
     name = "Baihe Tales",
     baseURL = baseURL,
     imageURL = "https://github.com/shosetsuorg/extensions/raw/dev/icons/Tintan.png",
 
     hasSearch = false,
+    lang = "en",
+
     chapterType = ChapterType.HTML,
 
     listings = {
-        Listing("Novels", false, function()
-            local doc = GETDocument(baseURL)
-            return findListings(doc)
-        end)
+        Listing("Novels", false, listings)
     },
 
-    getPassage = function(chapterURL)
-        return pageOfElem(parsePage(chapterURL))
-    end,
-
-    parseNovel = function(novelURL, loadChapters)
-        return parseNovelPage(novelURL, loadChapters)
-    end,
+    parseNovel = parseNovel,
+    getPassage = getPassage,
 
     shrinkURL = shrinkURL,
     expandURL = expandURL
