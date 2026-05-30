@@ -42,16 +42,15 @@ local function parsePage(url)
         return nil
     end
 
-    -- Remove ads/scripts
     content:select("script"):remove()
     content:select("iframe"):remove()
     content:select("style"):remove()
-
-    -- Remove common ad containers
     content:select(".TPuhiHlg"):remove()
 
-    WPCommon.cleanupElement(content)
-    WPCommon.cleanupPassages(content:children())
+    if WPCommon then
+        WPCommon.cleanupElement(content)
+        WPCommon.cleanupPassages(content:children())
+    end
 
     return content
 end
@@ -66,33 +65,17 @@ local function getPassage(url)
     return pageOfElem(page)
 end
 
-local function search(data)
+----------------------------------------------------
+-- TEST LISTING
+----------------------------------------------------
 
-    local query = data[QUERY]
-
-    local doc = GETDocument(
-        baseURL .. "/search.html?keyboard=" .. query
-    )
-
-    local results = {}
-
-    local novels = doc:select("a[href*='/novel/']")
-
-    map(novels, function(v)
-
-        local href = v:attr("href")
-
-        if href and href:find("/novel/") then
-
-            results[#results + 1] = Novel {
-                title = v:text(),
-                link = shrinkURL(href)
-            }
-
-        end
-    end)
-
-    return results
+local function listings()
+    return {
+        Novel {
+            title = "The Princess' Shadow Guard Cannot Be Too Clever",
+            link = "/novel/the-princess-shadow-guard-cannot-be-too-clever.html"
+        }
+    }
 end
 
 ----------------------------------------------------
@@ -100,6 +83,7 @@ end
 ----------------------------------------------------
 
 local function parseNovel(novelURL, loadChapters)
+
     local doc = GETDocument(expandURL(novelURL))
 
     local info = NovelInfo {}
@@ -110,10 +94,13 @@ local function parseNovel(novelURL, loadChapters)
 
     local titleNode =
         doc:selectFirst("h1")
+        or doc:selectFirst(".novel-title")
         or doc:selectFirst(".book-title")
 
     if titleNode then
         info:setTitle(titleNode:text())
+    else
+        info:setTitle("The Princess' Shadow Guard Cannot Be Too Clever")
     end
 
     ------------------------------------------------
@@ -142,10 +129,15 @@ local function parseNovel(novelURL, loadChapters)
 
         map(links, function(v)
 
-            local title =
-                v:selectFirst(".chapter-title")
-                and v:selectFirst(".chapter-title"):text()
-                or v:text()
+            local titleNode = v:selectFirst(".chapter-title")
+
+            local title
+
+            if titleNode then
+                title = titleNode:text()
+            else
+                title = v:text()
+            end
 
             chapters[#chapters + 1] = NovelChapter {
                 title = title,
@@ -173,12 +165,14 @@ return {
 
     imageURL = "https://github.com/shosetsuorg/extensions/raw/dev/icons/Tintan.png",
 
-    hasSearch = true,
+    hasSearch = false,
     lang = "en",
 
     chapterType = ChapterType.HTML,
 
-    search = search,
+    listings = {
+        Listing("Test Novel", false, listings)
+    },
 
     parseNovel = parseNovel,
     getPassage = getPassage,
