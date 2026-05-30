@@ -1,4 +1,4 @@
--- {"id":14444,"ver":"0.2.0","libVer":"1.0.0","author":"YourName","dep":["WPCommon>=1.0.0"]}
+-- {"id":14444,"ver":"0.3.0","libVer":"1.0.0","author":"YourName","dep":["WPCommon>=1.0.0"]}
 
 local baseURL = "https://baihetales.wordpress.com"
 
@@ -31,60 +31,58 @@ local function cleanImg(url)
     return url:gsub("%?.+$", "")
 end
 
-----------------------------------------------------
--- CHAPTER PARSER
-----------------------------------------------------
 
-local function parsePage(url)
-    local doc = GETDocument(expandURL(url))
+------------------------------------------------
+-- CHAPTERS
+------------------------------------------------
 
-    local content =
-        doc:selectFirst(".entry-content")
-        or doc:selectFirst(".wp-block-post-content")
+if loadChapters then
 
-    if not content then
-        return nil
-    end
+    local chapters = {}
+    local order = 1
+    local pageNum = 1
 
-    ------------------------------------------------
-    -- Remove everything after the first separator
-    -- (patreon, navigation, share buttons, etc.)
-    ------------------------------------------------
+    while true do
 
-    local sep = content:selectFirst("hr.wp-block-separator")
+        local pageURL
 
-    if sep then
-        local node = sep
-
-        while node do
-            local nextNode = node:nextElementSibling()
-            node:remove()
-            node = nextNode
+        if pageNum == 1 then
+            pageURL = expandURL(novelURL)
+        else
+            pageURL =
+                expandURL(novelURL)
+                .. "?query-4-page="
+                .. pageNum
+                .. "&cst"
         end
+
+        local pageDoc = GETDocument(pageURL)
+
+        local links =
+            pageDoc:select(
+                "ul.wp-block-post-template h6.wp-block-post-title a"
+            )
+
+        if links:size() == 0 then
+            break
+        end
+
+        map(links, function(v)
+
+            chapters[#chapters + 1] = NovelChapter {
+                title = v:text(),
+                link = shrinkURL(v:attr("href")),
+                order = order
+            }
+
+            order = order + 1
+
+        end)
+
+        pageNum = pageNum + 1
     end
 
-    ------------------------------------------------
-    -- Remove unwanted elements
-    ------------------------------------------------
-
-    content:select("script"):remove()
-    content:select("iframe"):remove()
-    content:select("style"):remove()
-
-    WPCommon.cleanupElement(content)
-    WPCommon.cleanupPassages(content:children())
-
-    return content
-end
-
-local function getPassage(url)
-    local page = parsePage(url)
-
-    if not page then
-        return ""
-    end
-
-    return pageOfElem(page)
+    info:setChapters(AsList(chapters))
 end
 
 ----------------------------------------------------
