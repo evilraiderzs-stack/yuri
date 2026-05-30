@@ -206,4 +206,3 @@ return {
     shrinkURL = shrinkURL,
     expandURL = expandURL
 }
-```
